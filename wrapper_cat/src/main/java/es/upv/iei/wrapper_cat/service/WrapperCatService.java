@@ -13,6 +13,6 @@ public class WrapperCatService {
     }
 
     public JsonNode obtenerEstaciones() throws Exception {
-        return wrapperCat.convertirXMLaJSON("src/main/resources/estaciones.json");
+        return wrapperCat.convertirXMLaJSON("src/main/resources/ITV-CAT.xml");
     }
 }

@@ -3,11 +3,13 @@ package es.upv.iei.api_carga.extractor;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Component;
 
 import java.sql.*;
 import java.util.HashMap;
 import java.util.Map;
 
+@Component
 public class ExtractorCSV {
     @Value("${spring.datasource.url}")
     private String url;

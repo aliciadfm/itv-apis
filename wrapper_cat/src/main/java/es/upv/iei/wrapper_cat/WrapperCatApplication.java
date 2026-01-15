@@ -1,6 +1,5 @@
 package es.upv.iei.wrapper_cat;
 
-import es.upv.iei.wrapper_cat.extractor.ExtractorCat;
 import es.upv.iei.wrapper_cat.wrapper.WrapperCat;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;

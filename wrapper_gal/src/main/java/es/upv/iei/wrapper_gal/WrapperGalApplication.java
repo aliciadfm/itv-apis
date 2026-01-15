@@ -1,6 +1,5 @@
 package es.upv.iei.wrapper_gal;
 
-import es.upv.iei.wrapper_gal.extractor.ExtractorGal;
 import es.upv.iei.wrapper_gal.wrapper.WrapperGal;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
