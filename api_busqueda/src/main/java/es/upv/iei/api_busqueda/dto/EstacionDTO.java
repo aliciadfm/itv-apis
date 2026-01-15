@@ -1,18 +1,50 @@
 package es.upv.iei.api_busqueda.dto;
 
+import io.swagger.v3.oas.annotations.media.Schema;
+
+@Schema(
+        name = "Estacion",
+        description = "Representación de una estación ITV almacenada en el sistema"
+)
 public class EstacionDTO {
+
+    @Schema(description = "Identificador único de la estación", example = "12")
     private Long id;
+
+    @Schema(description = "Nombre de la estación", example = "Estación ITV de Valencia")
     private String nombre;
+
+    @Schema(description = "Tipo de estación", example = "FIJA")
     private String tipo;
+
+    @Schema(description = "Dirección postal completa", example = "Av. del Puerto, 123")
     private String direccion;
+
+    @Schema(description = "Código postal", example = "46001")
     private String codigoPostal;
+
+    @Schema(description = "Longitud geográfica", example = "-0.376288")
     private Double longitud;
+
+    @Schema(description = "Latitud geográfica", example = "39.469907")
     private Double latitud;
+
+    @Schema(description = "Descripción adicional de la estación")
     private String descripcion;
+
+    @Schema(description = "Horario de atención", example = "L-V 8:00-20:00")
     private String horario;
+
+    @Schema(description = "Información de contacto", example = "info@itv.es / 961234567")
     private String contacto;
+
+    @Schema(description = "URL de información o cita previa", example = "https://www.itv.es")
     private String url;
+
+    @Schema(description = "Nombre de la localidad", example = "Valencia")
     private String localidadNombre;
+
+    @Schema(description = "Nombre de la provincia", example = "Valencia")
     private String provinciaNombre;
 
     // Getters y Setters

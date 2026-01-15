@@ -1,13 +1,47 @@
 package es.upv.iei.api_busqueda.dto;
 
-import java.util.List;
+import io.swagger.v3.oas.annotations.media.Schema;
 
+@Schema(
+        name = "BusquedaRequest",
+        description = "Objeto que contiene los filtros de búsqueda de estaciones ITV"
+)
 public class BusquedaRequestDTO {
-    private String localidad;
-    private String codigoPostal;
-    private String provincia;
-    private String tipo;
 
+    @Schema(
+            description = "Nombre de la localidad donde se ubica la estación",
+            example = "Valencia",
+            nullable = true
+    )
+    private String localidad;
+
+    @Schema(
+            description = "Código postal de la estación",
+            example = "46001",
+            nullable = true
+    )
+    private String codigoPostal;
+
+    @Schema(
+            description = "Nombre de la provincia",
+            example = "Valencia",
+            nullable = true
+    )
+    private String provincia;
+
+    @Schema(
+            description = """
+            Tipo de estación ITV.
+
+            Valores admitidos:
+            - FIJA
+            - MOVIL
+            - OTROS
+            """,
+            example = "FIJA",
+            nullable = true
+    )
+    private String tipo;
     // Getters y Setters
     public String getLocalidad() {
         return localidad;
