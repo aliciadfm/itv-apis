@@ -1,5 +1,6 @@
 package es.upv.iei.wrapper_gal.wrapper;
 
+import org.springframework.stereotype.Component;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
 import tools.jackson.databind.node.ArrayNode;
@@ -11,6 +12,7 @@ import java.io.IOException;
 import java.util.HashSet;
 import java.util.Set;
 
+@Component
 public class WrapperGal {
     private final ObjectMapper mapper = new ObjectMapper();
 
