@@ -1,5 +1,5 @@
 // Configuración de la API
-const API_URL = 'http://localhost:8080/api/estaciones';
+const API_URL = 'http://localhost:9002/api/carga';
 
 // Manejar checkbox "Seleccionar todas"
 function configurarCheckboxTodas() {
@@ -81,7 +81,7 @@ async function borrarAlmacen() {
     mostrarCargando(true);
 
     try {
-        const response = await fetch(API_URL, {
+        const response = await fetch(`${API_URL}/borrar`, {
             method: 'DELETE'
         });
 
