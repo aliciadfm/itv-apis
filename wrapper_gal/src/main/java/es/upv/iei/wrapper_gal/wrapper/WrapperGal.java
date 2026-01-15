@@ -122,10 +122,11 @@ public class WrapperGal {
     }
 
     private String limpiarNombreLocalidad(String nombreEstacion) {
-        if (nombreEstacion == null)
-            return "Desconocido";
+        if (nombreEstacion == null) return "Desconocido";
         String n = nombreEstacion.trim();
-        n = n.replaceAll("(?i)Estaci.*n\\s+ITV\\s+d[aeo]\\s+", "").trim();
+        n = n.replaceFirst("(?i)Estación ITV d[aeo] ", "").trim();
+        n = n.replaceFirst("(?i)Estación ITV de ", "").trim();
+        n = n.replaceFirst("(?i)Estación ITV do ", "").trim();
         return n.isEmpty() ? "Desconocido" : n;
     }
 
