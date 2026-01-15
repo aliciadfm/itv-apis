@@ -10,11 +10,14 @@ import tools.jackson.databind.JsonNode;
 public class WrapperCvApplication {
 
 	public static void main(String[] args) throws Exception {
-		//SpringApplication.run(WrapperCvApplication.class, args);
+		SpringApplication.run(WrapperCvApplication.class, args);
+
+        /*
         WrapperCV wrapperCV = new WrapperCV();
         ExtractorCV extractorCV = new ExtractorCV();
 
         JsonNode jsonCV = wrapperCV.convertirAJSON("src/main/resources/estaciones.json");
         extractorCV.insertar(jsonCV);
+         */
 	}
 }

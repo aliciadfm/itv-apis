@@ -12,12 +12,13 @@ import java.io.IOException;
 public class WrapperCatApplication {
 
 	public static void main(String[] args) throws Exception {
-		//SpringApplication.run(WrapperCatApplication.class, args);
+		SpringApplication.run(WrapperCatApplication.class, args);
+        /*
         WrapperCat wrapperCat = new WrapperCat();
         ExtractorCat  extractorCat = new ExtractorCat();
 
         JsonNode jsonCat = wrapperCat.convertirCSVaJSON("src/main/resources/ITV-CAT.xml");
         extractorCat.insertar(jsonCat);
+         */
 	}
-
 }
