@@ -40,20 +40,20 @@ public class BusquedaController {
     @Operation(
             summary = "Búsqueda de estaciones ITV por filtros",
             description = """
-            Realiza una búsqueda de estaciones ITV aplicando uno o varios filtros opcionales.
+        Realiza una búsqueda de estaciones ITV aplicando uno o varios filtros opcionales
+        mediante parámetros de consulta (query parameters).
 
-            Los filtros se reciben en el cuerpo de la petición en formato JSON.
-            Cualquier campo puede omitirse o enviarse vacío, en cuyo caso no se aplicará
-            dicho criterio en la búsqueda.
+        Cualquier parámetro puede omitirse, en cuyo caso no se aplicará
+        dicho criterio en la búsqueda.
 
-            Filtros disponibles:
-            - Localidad
-            - Código postal
-            - Provincia
-            - Tipo de estación (FIJA, MOVIL, OTROS)
+        Filtros disponibles:
+        - localidad
+        - codigoPostal
+        - provincia
+        - tipo (FIJA, MOVIL, OTROS)
 
-            El resultado es una lista de estaciones que cumplen todos los filtros proporcionados.
-            """
+        El resultado es una lista de estaciones que cumplen todos los filtros proporcionados.
+        """
     )
     @ApiResponses(value = {
             @ApiResponse(
@@ -61,22 +61,20 @@ public class BusquedaController {
                     description = "Listado de estaciones que cumplen los criterios de búsqueda",
                     content = @Content(
                             mediaType = "application/json",
-                            schema = @Schema(
-                                    implementation = EstacionDTO.class
-                            )
+                            schema = @Schema(implementation = EstacionDTO.class)
                     )
             ),
             @ApiResponse(
                     responseCode = "400",
-                    description = "Petición mal formada o filtros inválidos",
+                    description = "Parámetros de búsqueda inválidos",
                     content = @Content(
                             mediaType = "application/json",
                             schema = @Schema(
                                     example = """
-                        {
-                          "error": "El tipo de estación indicado no es válido"
-                        }
-                        """
+                    {
+                      "error": "El tipo de estación indicado no es válido"
+                    }
+                    """
                             )
                     )
             ),
@@ -87,28 +85,37 @@ public class BusquedaController {
                             mediaType = "application/json",
                             schema = @Schema(
                                     example = """
-                        {
-                          "error": "Error interno al acceder a la base de datos"
-                        }
-                        """
+                    {
+                      "error": "Error interno al acceder a la base de datos"
+                    }
+                    """
                             )
                     )
             )
     })
-    @PostMapping("/estaciones")
+    @GetMapping("/estaciones")
     public ResponseEntity<List<EstacionDTO>> buscar(
-            @RequestBody
-            @Schema(
-                    description = "Criterios de búsqueda para filtrar estaciones ITV",
-                    required = true
-            )
-            BusquedaRequestDTO request
+            @RequestParam(required = false)
+            @Schema(description = "Localidad de la estación")
+            String localidad,
+
+            @RequestParam(required = false)
+            @Schema(description = "Código postal de la estación")
+            String codigoPostal,
+
+            @RequestParam(required = false)
+            @Schema(description = "Provincia de la estación")
+            String provincia,
+
+            @RequestParam(required = false)
+            @Schema(description = "Tipo de estación (FIJA, MOVIL, OTROS)")
+            String tipo
     ) {
         List<EstacionDTO> estaciones = estacionService.buscarPorFiltros(
-                        request.getLocalidad(),
-                        request.getCodigoPostal(),
-                        request.getProvincia(),
-                        request.getTipo()
+                        localidad,
+                        codigoPostal,
+                        provincia,
+                        tipo
                 ).stream()
                 .map(EstacionMapper::toDTO)
                 .collect(Collectors.toList());
