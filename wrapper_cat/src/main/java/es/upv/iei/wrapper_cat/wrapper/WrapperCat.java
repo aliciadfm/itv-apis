@@ -1,179 +1,112 @@
-package es.upv.iei.wrapper_cat.wrapper;
+package es.upv.iei.itv.wrapper;
 
-import tools.jackson.databind.JsonNode;
-import tools.jackson.databind.ObjectMapper;
-import tools.jackson.databind.node.ArrayNode;
-import tools.jackson.databind.node.ObjectNode;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 
-import java.io.BufferedReader;
-import java.io.FileReader;
-import java.io.IOException;
-import java.util.HashSet;
-import java.util.Set;
+import org.w3c.dom.Document;
+import org.w3c.dom.Node;
+import org.w3c.dom.NodeList;
+
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.xpath.XPath;
+import javax.xml.xpath.XPathConstants;
+import javax.xml.xpath.XPathFactory;
+import java.io.File;
 
 public class WrapperCat {
+
     private final ObjectMapper mapper = new ObjectMapper();
+    private int estacionId = 1;
+    private int localidadId = 1;
 
-    public JsonNode convertirCSVaJSON(String filePath) throws IOException {
+    public JsonNode convertirXMLaJSON(String filePath) throws Exception {
+
+        DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
+        DocumentBuilder builder = factory.newDocumentBuilder();
+        Document doc = builder.parse(new File(filePath));
+        doc.getDocumentElement().normalize();
+
+        XPath xPath = XPathFactory.newInstance().newXPath();
+        NodeList rows = (NodeList) xPath.evaluate("/response/row/row", doc, XPathConstants.NODESET);
+
         ArrayNode estacionesArray = mapper.createArrayNode();
-        Set<String> uniqueEstacion = new HashSet<>();
-        Set<String> uniqueLocalidad = new HashSet<>();
-        Set<String> uniqueProvincia = new HashSet<>();
-        ArrayNode localidadesArray = mapper.createArrayNode();
-        ArrayNode provinciasArray = mapper.createArrayNode();
 
-        try (BufferedReader br = new BufferedReader(new FileReader(filePath))) {
-            String headerLine = br.readLine();
-            if (headerLine == null) return mapper.createObjectNode();
-            String[] headers = headerLine.split(";");
+        for (int i = 0; i < rows.getLength(); i++) {
+            Node row = rows.item(i);
 
-            String line;
-            while ((line = br.readLine()) != null) {
-                String[] values = line.split(";");
-                if (values.length < 10) continue;
+            ObjectNode estacion = mapper.createObjectNode();
 
-                // --- Inputs de CSV
-                String nombre = getValue(headers, values, "NOME DA ESTACIÓN");
-                String direccion = getValue(headers, values, "ENDEREZO");
-                String concello = getValue(headers, values, "CONCELLO");
-                String codigoPostal = getValue(headers, values, "CÓDIGO POSTAL");
-                String provincia = getValue(headers, values, "PROVINCIA");
-                String telefono = getValue(headers, values, "TELÉFONO");
-                String horario = getValue(headers, values, "HORARIO");
-                String urlCita = getValue(headers, values, "SOLICITUDE DE CITA PREVIA");
-                String correo = getValue(headers, values, "CORREO ELECTRÓNICO");
-                String coordGmaps = getValue(headers, values, "COORDENADAS GMAPS");
+            String denominaci = getText(row, "denominaci");
+            String nombre = "Estació de ITV de " + denominaci;
+            String cp = getText(row, "cp");
+            String direccion = getText(row, "adre_a");
+            String longStr = getText(row, "long");
+            String latStr = getText(row, "lat");
+            String horario = getText(row, "horari_de_servei");
+            String descripcion = direccion + " / " + horario;
+            String correo = getText(row, "correu_electr_nic");
+            String telefono = getText(row, "tel_atenc_public");
+            String contacto = correo + " / " + telefono;
+            String URL = getText(row, "web/@url");
+            String nombre_provincia = getText(row, "serveis_territorials");
 
-                String provinciaNombre = limpiarNombreProvincia(provincia);
-                String provinciaCodigo = obtenerCodigoProvincia(codigoPostal);
+            estacion.put("cod_estacion", estacionId++);
+            estacion.put("nombre", nombre);
 
-                String localidadNombre = limpiarNombreLocalidad(nombre);
-                String localidadCodigo = provinciaCodigo;
-
-                String keyEstacion = nombre.trim() + direccion.trim() + concello.trim() + codigoPostal.trim();
-                if (uniqueEstacion.contains(keyEstacion)) continue;
-                uniqueEstacion.add(keyEstacion);
-
-                String keyLocalidad = localidadNombre + "_" + localidadCodigo;
-                if (!uniqueLocalidad.contains(keyLocalidad)) {
-                    ObjectNode localidadNode = mapper.createObjectNode();
-                    localidadNode.put("nombre", localidadNombre);
-                    localidadNode.put("codigo", localidadCodigo);
-                    localidadNode.put("provincia_nombre", provinciaNombre);
-                    localidadesArray.add(localidadNode);
-                    uniqueLocalidad.add(keyLocalidad);
-                }
-
-                if (!uniqueProvincia.contains(provinciaNombre)) {
-                    ObjectNode provinciaNode = mapper.createObjectNode();
-                    provinciaNode.put("nombre", provinciaNombre);
-                    provinciaNode.put("codigo", provinciaCodigo);
-                    provinciasArray.add(provinciaNode);
-                    uniqueProvincia.add(provinciaNombre);
-                }
-
-                ObjectNode estacion = mapper.createObjectNode();
-                estacion.put("nombre", nombre);
-
-                boolean esFija = !isNullOrEmpty(codigoPostal) && !isNullOrEmpty(direccion);
-                estacion.put("tipo", esFija ? "Estacion_fija" : "Otros");
-                estacion.put("direccion", direccion);
-                estacion.put("codigo_postal", corregirCodigoPostal(codigoPostal));
-
-                estacion.put("descripcion", direccion + " " + horario);
-
-                estacion.put("horario", horario);
-
-                estacion.put("contacto", (isNullOrEmpty(correo) ? "" : correo) + " " + (isNullOrEmpty(telefono) ? "" : telefono));
-
-                estacion.put("URL", isNullOrEmpty(urlCita) ? "" : urlCita);
-
-                estacion.put("localidad_nombre", localidadNombre);
-                estacion.put("localidad_codigo", localidadCodigo);
-                estacion.put("provincia_nombre", provinciaNombre);
-                estacion.put("provincia_codigo", provinciaCodigo);
-
-                Double[] coords = parseCoordenadas(coordGmaps);
-                estacion.put("latitud", coords[0]);
-                estacion.put("longitud", coords[1]);
-
-                estacionesArray.add(estacion);
+            if (isNullOrEmpty(cp) && isNullOrEmpty(direccion)) {
+                estacion.put("tipo", "Otros");
+            } else {
+                estacion.put("tipo", "Estación_fija");
             }
-        }
-        ObjectNode jsonFinal = mapper.createObjectNode();
-        jsonFinal.set("estaciones", estacionesArray);
-        jsonFinal.set("localidades", localidadesArray);
-        jsonFinal.set("provincias", provinciasArray);
-        return jsonFinal;
-    }
 
-    private String corregirCodigoPostal(String codigoPostal) {
-        if (isNullOrEmpty(codigoPostal)) return "00000";
-        if (codigoPostal.trim().equals("271003")) return "27003";
-        return codigoPostal.trim();
-    }
+            estacion.put("direccion", direccion);
+            estacion.put("codigo_postal", cp);
 
-    private String limpiarNombreProvincia(String provincia) {
-        String resultado = isNullOrEmpty(provincia) ? "Desconocida" : provincia.trim();
-        if (resultado.equals("Coruña")) return "A Coruña";
-        return resultado;
-    }
-
-    private String limpiarNombreLocalidad(String nombreEstacion) {
-        if (nombreEstacion == null) return "Desconocido";
-        String n = nombreEstacion.trim();
-        n = n.replaceFirst("(?i)Estación ITV d[aeo] ", "").trim();
-        n = n.replaceFirst("(?i)Estación ITV de ", "").trim();
-        n = n.replaceFirst("(?i)Estación ITV do ", "").trim();
-        return n.isEmpty() ? "Desconocido" : n;
-    }
-
-    private String obtenerCodigoProvincia(String codigoPostal) {
-        return (codigoPostal == null || codigoPostal.length() < 2) ? "00" : codigoPostal.trim().substring(0, 2);
-    }
-
-    private String getValue(String[] headers, String[] values, String key) {
-        for (int i = 0; i < headers.length; i++) {
-            if (headers[i].trim().equalsIgnoreCase(key) && i < values.length) {
-                return values[i].trim();
+            if (!isNullOrEmpty(longStr)) {
+                estacion.put("longitud", Double.parseDouble(longStr) / 1_000_000d);
             }
+            if (!isNullOrEmpty(latStr)) {
+                estacion.put("latitud", Double.parseDouble(latStr) / 1_000_000d);
+            }
+
+            estacion.put("descripcion", descripcion);
+            estacion.put("horario", horario);
+            estacion.put("contacto", contacto);
+            estacion.put("URL", URL);
+            estacion.put("localidad_codigo", localidadId++);
+            estacion.put("localidad_nombre", denominaci);
+
+            if (!isNullOrEmpty(cp) && cp.length() >= 2) {
+                estacion.put("provincia_codigo", cp.substring(0, 2));
+            }
+
+            estacion.put("provincia_nombre", nombre_provincia);
+
+            estacionesArray.add(estacion);
         }
-        return "";
+        return estacionesArray;
+    }
+
+    private String getText(Node row, String xpathExpr) {
+        try {
+            XPath xPath = XPathFactory.newInstance().newXPath();
+
+            if (xpathExpr.contains("@")) {
+                String attrValue = xPath.evaluate(xpathExpr, row);
+                return attrValue != null ? attrValue.trim() : "";
+            }
+
+            String result = xPath.evaluate(xpathExpr, row);
+            return result != null ? result.trim() : "";
+        } catch (Exception e) {
+            return "";
+        }
     }
 
     private boolean isNullOrEmpty(String s) {
         return s == null || s.trim().isEmpty();
-    }
-
-    private Double[] parseCoordenadas(String coordStr) {
-        if (isNullOrEmpty(coordStr)) return new Double[]{null, null};
-        String[] parts = coordStr.split(",");
-        if (parts.length != 2) return new Double[]{null, null};
-        Double lat = parseCoordenada(parts[0]);
-        if(lat > 100.0){
-            lat = lat/10.0;
-        }
-        Double lon = parseCoordenada(parts[1]);
-        if(lon > 100.0){
-            lon = lon/10.0;
-        }
-        return new Double[]{lat, lon};
-    }
-
-    private Double parseCoordenada(String input) {
-        input = input.replace("°", "°").replace("'", "'").trim();
-        try {
-            if (input.contains("°")) {
-                int idxDeg = input.indexOf("°");
-                int idxMin = input.indexOf("'");
-                double grados = Double.parseDouble(input.substring(0, idxDeg).trim());
-                double minutos = (idxMin > idxDeg) ? Double.parseDouble(input.substring(idxDeg + 1, idxMin).trim()) : 0.0;
-                return grados + (minutos / 60.0);
-            } else {
-                return Double.parseDouble(input);
-            }
-        } catch (Exception e) {
-            return null;
-        }
     }
 }
