@@ -10,12 +10,14 @@ import tools.jackson.databind.JsonNode;
 public class WrapperGalApplication {
 
 	public static void main(String[] args) throws Exception {
-		//SpringApplication.run(WrapperGalApplication.class, args);
+		SpringApplication.run(WrapperGalApplication.class, args);
+        /*
         WrapperGal wrapperGal = new WrapperGal();
         ExtractorGal  extractorGal = new ExtractorGal();
 
         JsonNode jsonNode = wrapperGal.convertirCSVaJSON("src/main/resources/Estacions_ITV.csv");
         extractorGal.insertar(jsonNode);
+        */
 	}
 
 }
