@@ -1,13 +1,29 @@
 package es.upv.iei.api_carga.dto;
 
+import io.swagger.v3.oas.annotations.media.Schema;
+
 import java.util.ArrayList;
 import java.util.List;
 
+@Schema(
+        name = "ResultadoCarga",
+        description = "Resultado agregado del proceso de carga ETL"
+)
 public class ResultadoCargaDTO {
+
+    @Schema(description = "Número de registros insertados correctamente", example = "120")
     private int registrosCorrectos;
+
+    @Schema(description = "Número de registros con errores reparados automáticamente", example = "15")
     private int registrosConErroresReparados;
+
+    @Schema(description = "Número de registros rechazados", example = "3")
     private int registrosRechazados;
+
+    @Schema(description = "Listado de errores reparados")
     private List<ErrorCargaDTO> erroresReparados;
+
+    @Schema(description = "Listado de errores no reparables")
     private List<ErrorCargaDTO> erroresRechazados;
 
     public ResultadoCargaDTO() {
