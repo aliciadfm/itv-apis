@@ -13,7 +13,7 @@ public class WrapperCatController {
     }
 
     @GetMapping
-    public ResponseEntity<JsonNode> getWrapperGal() throws Exception {
+    public ResponseEntity<JsonNode> getWrapperCat() throws Exception {
         return ResponseEntity.ok(wrapperCatService.obtenerEstaciones());
     }
 }
