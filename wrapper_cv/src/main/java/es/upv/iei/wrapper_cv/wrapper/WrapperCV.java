@@ -1,6 +1,7 @@
 package es.upv.iei.wrapper_cv.wrapper;
 
 import es.upv.iei.wrapper_cv.service.CoordenadasService;
+import org.springframework.stereotype.Component;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
 import tools.jackson.databind.node.ArrayNode;
@@ -9,6 +10,7 @@ import tools.jackson.databind.node.ObjectNode;
 import java.io.File;
 import java.io.IOException;
 
+@Component
 public class WrapperCV {
     private final ObjectMapper mapper = new ObjectMapper();
     private int estacionId = 1;
