@@ -22,9 +22,6 @@ public class ExtractorJSON {
     private final Map<String, Long> localidadCache = new HashMap<>();
 
     public void insertar(JsonNode estacionesArray) throws Exception {
-        url = "jdbc:postgresql://localhost:5432/postgres";
-        user = "postgres";
-        password = "contrasenya";
         try (Connection conn = DriverManager.getConnection(url, user, password)) {
             conn.setAutoCommit(false);
 
@@ -92,12 +89,12 @@ public class ExtractorJSON {
 
     private void insertarEstacion(Connection conn, JsonNode estacion, long localidadId) throws SQLException {
         String sql = """
-            INSERT INTO estacion(
-                nombre, tipo, direccion, codigo_postal, 
-                longitud, latitud, descripcion, horario, 
-                contacto, url, localidad_id
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        """;
+                    INSERT INTO estacion(
+                        nombre, tipo, direccion, codigo_postal,
+                        longitud, latitud, descripcion, horario,
+                        contacto, url, localidad_id
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """;
 
         try (PreparedStatement stmt = conn.prepareStatement(sql)) {
             stmt.setString(1, estacion.get("nombre").asText());

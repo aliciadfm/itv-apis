@@ -22,9 +22,6 @@ public class ExtractorCSV {
     private final Map<String, Long> localidadCache = new HashMap<>();
 
     public void insertar(JsonNode jsonMultiEntidad) throws Exception {
-        url = "jdbc:postgresql://localhost:5432/postgres";
-        user = "postgres";
-        password = "contrasenya";
 
         try (Connection conn = DriverManager.getConnection(url, user, password)) {
             conn.setAutoCommit(false);
@@ -42,7 +39,8 @@ public class ExtractorCSV {
                 String nombre = limpiar(localidad.get("nombre").asText(), "Desconocido");
                 String codigo = limpiar(localidad.get("codigo").asText(), "00");
                 String provinciaNombre = limpiar(localidad.get("provincia_nombre").asText(), "Desconocida");
-                long provinciaId = provinciaCache.getOrDefault(provinciaNombre, getOrInsertProvincia(conn, provinciaNombre, codigo));
+                long provinciaId = provinciaCache.getOrDefault(provinciaNombre,
+                        getOrInsertProvincia(conn, provinciaNombre, codigo));
                 long id = getOrInsertLocalidad(conn, nombre, provinciaId, codigo);
                 localidadCache.put(nombre + "_" + provinciaId, id);
             }
@@ -53,8 +51,10 @@ public class ExtractorCSV {
                 String localidadNombre = limpiar(estacion.get("localidad_nombre").asText(), "Desconocido");
                 String localidadCodigo = limpiar(estacion.get("localidad_codigo").asText(), "00");
                 String provinciaNombre = limpiar(estacion.get("provincia_nombre").asText(), "Desconocida");
-                long provinciaId = provinciaCache.getOrDefault(provinciaNombre, getOrInsertProvincia(conn, provinciaNombre, estacion.get("provincia_codigo").asText()));
-                long localidadId = localidadCache.getOrDefault(localidadNombre + "_" + provinciaId, getOrInsertLocalidad(conn, localidadNombre, provinciaId, localidadCodigo));
+                long provinciaId = provinciaCache.getOrDefault(provinciaNombre,
+                        getOrInsertProvincia(conn, provinciaNombre, estacion.get("provincia_codigo").asText()));
+                long localidadId = localidadCache.getOrDefault(localidadNombre + "_" + provinciaId,
+                        getOrInsertLocalidad(conn, localidadNombre, provinciaId, localidadCodigo));
 
                 if (!estacionExiste(conn, nombreEstacion, localidadId)) {
                     insertarEstacion(conn, estacion, localidadId);
@@ -71,7 +71,8 @@ public class ExtractorCSV {
     }
 
     private long getOrInsertProvincia(Connection conn, String nombre, String codigo) throws SQLException {
-        if (provinciaCache.containsKey(nombre)) return provinciaCache.get(nombre);
+        if (provinciaCache.containsKey(nombre))
+            return provinciaCache.get(nombre);
         String selectSql = "SELECT codigo FROM provincia WHERE nombre = ?";
         try (PreparedStatement stmt = conn.prepareStatement(selectSql)) {
             stmt.setString(1, nombre);
@@ -95,9 +96,11 @@ public class ExtractorCSV {
         throw new SQLException("Error insertando Provincia: " + nombre);
     }
 
-    private long getOrInsertLocalidad(Connection conn, String nombre, long provinciaId, String codigo) throws SQLException {
+    private long getOrInsertLocalidad(Connection conn, String nombre, long provinciaId, String codigo)
+            throws SQLException {
         String key = nombre + "_" + provinciaId;
-        if (localidadCache.containsKey(key)) return localidadCache.get(key);
+        if (localidadCache.containsKey(key))
+            return localidadCache.get(key);
         String selectSql = "SELECT codigo FROM localidad WHERE nombre = ? AND provincia_codigo = ?";
         try (PreparedStatement stmt = conn.prepareStatement(selectSql)) {
             stmt.setString(1, nombre);
@@ -135,12 +138,12 @@ public class ExtractorCSV {
 
     private void insertarEstacion(Connection conn, JsonNode estacion, long localidadId) throws SQLException {
         String sql = """
-            INSERT INTO estacion(
-                nombre, tipo, direccion, codigo_postal,
-                longitud, latitud, descripcion, horario,
-                contacto, url, localidad_id
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        """;
+                    INSERT INTO estacion(
+                        nombre, tipo, direccion, codigo_postal,
+                        longitud, latitud, descripcion, horario,
+                        contacto, url, localidad_id
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """;
 
         try (PreparedStatement stmt = conn.prepareStatement(sql)) {
             stmt.setString(1, estacion.get("nombre").asText());

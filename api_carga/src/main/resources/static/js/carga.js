@@ -54,7 +54,7 @@ async function cargarDatos() {
 
     try {
         const response = await fetch(`${API_URL}/cargar`, {
-            method: 'POST',
+            method: 'GET',
             headers: {
                 'Content-Type': 'application/json'
             },

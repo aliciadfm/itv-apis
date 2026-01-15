@@ -1,6 +1,7 @@
 package es.upv.iei.api_carga.extractor;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import java.sql.*;
@@ -10,9 +11,12 @@ import java.util.Map;
 @Component
 public class ExtractorXML {
 
-    private final String url = "jdbc:postgresql://localhost:5432/postgres";
-    private final String user = "postgres";
-    private final String password = "contrasenya";
+    @Value("${spring.datasource.url}")
+    private String url;
+    @Value("${spring.datasource.username}")
+    private String user;
+    @Value("${spring.datasource.password}")
+    private String password;
 
     private final Map<String, Long> provinciaCache = new HashMap<>();
     private final Map<String, Long> localidadCache = new HashMap<>();
@@ -59,10 +63,10 @@ public class ExtractorXML {
         }
 
         String insertSql = """
-            INSERT INTO provincia(nombre)
-            VALUES (?)
-            RETURNING codigo
-        """;
+                    INSERT INTO provincia(nombre)
+                    VALUES (?)
+                    RETURNING codigo
+                """;
         try (PreparedStatement stmt = conn.prepareStatement(insertSql)) {
             stmt.setString(1, nombre);
             ResultSet rs = stmt.executeQuery();
@@ -75,7 +79,8 @@ public class ExtractorXML {
         throw new SQLException("Error insertando Provincia");
     }
 
-    private long getOrInsertLocalidad(Connection conn, String nombre, long provinciaId, String localidadKey) throws SQLException {
+    private long getOrInsertLocalidad(Connection conn, String nombre, long provinciaId, String localidadKey)
+            throws SQLException {
         String selectSql = "SELECT codigo FROM localidad WHERE nombre = ? AND provincia_codigo = ?";
         try (PreparedStatement stmt = conn.prepareStatement(selectSql)) {
             stmt.setString(1, nombre);
@@ -88,10 +93,10 @@ public class ExtractorXML {
             }
         }
         String insertSql = """
-            INSERT INTO localidad(nombre, provincia_codigo)
-            VALUES (?, ?)
-            RETURNING codigo
-        """;
+                    INSERT INTO localidad(nombre, provincia_codigo)
+                    VALUES (?, ?)
+                    RETURNING codigo
+                """;
         try (PreparedStatement stmt = conn.prepareStatement(insertSql)) {
             stmt.setString(1, nombre);
             stmt.setLong(2, provinciaId);
@@ -118,13 +123,13 @@ public class ExtractorXML {
     private void insertarEstacion(Connection conn, JsonNode estacion, long localidadId) throws SQLException {
 
         String sql = """
-            INSERT INTO estacion(
-                nombre, tipo, direccion,
-                codigo_postal, longitud, latitud,
-                descripcion, horario, contacto, url,
-                localidad_id
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        """;
+                    INSERT INTO estacion(
+                        nombre, tipo, direccion,
+                        codigo_postal, longitud, latitud,
+                        descripcion, horario, contacto, url,
+                        localidad_id
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """;
 
         try (PreparedStatement stmt = conn.prepareStatement(sql)) {
 
