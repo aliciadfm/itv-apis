@@ -23,6 +23,8 @@ public class ErrorCargaDTO {
     @Schema(description = "Operación realizada sobre el registro", example = "RECHAZADO")
     private String operacion;
 
+    private TipoResultadoRegistro tipoResultadoRegistro;
+
     public ErrorCargaDTO() {
     }
 
@@ -32,6 +34,12 @@ public class ErrorCargaDTO {
         this.localidad = localidad;
         this.motivo = motivo;
         this.operacion = operacion;
+    }
+
+    public enum TipoResultadoRegistro {
+        ACEPTADO,
+        ACEPTADO_REPARADO,
+        RECHAZADO
     }
 
     public String getFuente() {
@@ -72,5 +80,13 @@ public class ErrorCargaDTO {
 
     public void setOperacion(String operacion) {
         this.operacion = operacion;
+    }
+
+    public TipoResultadoRegistro getTipoResultadoRegistro(){
+        return this.tipoResultadoRegistro;
+    }
+
+    public void setTipoResultadoRegistro(TipoResultadoRegistro tipoResultadoRegistro) {
+        this.tipoResultadoRegistro = tipoResultadoRegistro;
     }
 }

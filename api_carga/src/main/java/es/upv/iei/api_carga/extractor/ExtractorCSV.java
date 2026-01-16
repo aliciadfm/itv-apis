@@ -3,6 +3,8 @@ package es.upv.iei.api_carga.extractor;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import es.upv.iei.api_carga.dto.ErrorCargaDTO;
+import es.upv.iei.api_carga.dto.ResultadoCargaDTO;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
@@ -30,7 +32,9 @@ public class ExtractorCSV {
             "36", "Pontevedra"
     );
 
-    public void insertar(JsonNode jsonMultiEntidad) throws Exception {
+    public ResultadoCargaDTO insertar(JsonNode jsonMultiEntidad) throws Exception {
+
+        ResultadoCargaDTO resultado = new ResultadoCargaDTO();
 
         try (Connection conn = DriverManager.getConnection(url, user, password)) {
             conn.setAutoCommit(false);
@@ -39,15 +43,33 @@ public class ExtractorCSV {
 
             for (JsonNode estacion : estaciones) {
 
+                // Copia original para detectar reparaciones
+                JsonNode original = estacion.deepCopy();
+
+                // 1. Limpieza
                 limpiarEstacion(estacion);
 
+                // 2. Validación
                 if (!estacionValida(estacion)) {
-                    System.out.println("Estación CSV rechazada: " + estacion);
+
+                    resultado.agregarErrorRechazado(
+                            new ErrorCargaDTO(
+                                    "GAL",
+                                    safeText(original.get("nombre")),
+                                    safeText(original.get("localidad_nombre")),
+                                    "Validación fallida",
+                                    "RECHAZADO"
+                            )
+                    );
                     continue;
                 }
 
+                // 3. Correcciones automáticas
                 corregirProvinciaSegunCP(estacion);
 
+                boolean reparado = !original.equals(estacion);
+
+                // 4. Provincia
                 String provinciaNombre = estacion.get("provincia_nombre").asText();
                 long provinciaId = provinciaCache.computeIfAbsent(
                         provinciaNombre,
@@ -60,7 +82,7 @@ public class ExtractorCSV {
                         }
                 );
 
-                // 5. Insertar localidad
+                // 5. Localidad
                 String localidadNombre = estacion.get("localidad_nombre").asText();
                 String keyLoc = localidadNombre + "_" + provinciaId;
 
@@ -75,15 +97,31 @@ public class ExtractorCSV {
                         }
                 );
 
-                // 6. Insertar estación si no existe
+                // 6. Estación
                 if (!estacionExiste(conn, estacion.get("nombre").asText(), localidadId)) {
                     insertarEstacion(conn, estacion, localidadId);
+                }
+
+                // 7. Resultado
+                if (reparado) {
+                    resultado.agregarErrorReparado(
+                            new ErrorCargaDTO(
+                                    "GAL",
+                                    estacion.get("nombre").asText(),
+                                    estacion.get("localidad_nombre").asText(),
+                                    "Registro reparado automáticamente",
+                                    "REPARADO"
+                            )
+                    );
+                } else {
+                    resultado.incrementarRegistrosCorrectos();
                 }
             }
 
             conn.commit();
-            System.out.println("✔ Inserción Multi-Entidad CSV completada correctamente.");
         }
+
+        return resultado;
     }
 
     private void limpiarEstacion(JsonNode estacion) {
