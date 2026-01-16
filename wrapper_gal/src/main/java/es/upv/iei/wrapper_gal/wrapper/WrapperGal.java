@@ -80,7 +80,7 @@ public class WrapperGal {
                 boolean esFija = !isNullOrEmpty(codigoPostal) && !isNullOrEmpty(direccion);
                 estacion.put("tipo", esFija ? "Estacion_fija" : "Otros");
                 estacion.put("direccion", direccion);
-                estacion.put("codigo_postal", corregirCodigoPostal(codigoPostal));
+                estacion.put("codigo_postal", codigoPostal);
 
                 estacion.put("descripcion", direccion + " " + horario);
 
@@ -107,12 +107,6 @@ public class WrapperGal {
         jsonFinal.set("localidades", localidadesArray);
         jsonFinal.set("provincias", provinciasArray);
         return jsonFinal;
-    }
-
-    private String corregirCodigoPostal(String codigoPostal) {
-        if (isNullOrEmpty(codigoPostal)) return "00000";
-        if (codigoPostal.trim().equals("271003")) return "27003";
-        return codigoPostal.trim();
     }
 
     private String limpiarNombreProvincia(String provincia) {

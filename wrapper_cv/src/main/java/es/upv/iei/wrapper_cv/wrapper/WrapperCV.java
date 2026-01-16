@@ -35,7 +35,7 @@ public class WrapperCV {
 
                 estacion.put("cod_estacion", estacionId++);
 
-                String nombreFinal = "Estación ITV de " + (isNullOrEmpty(nombreRaw) ? "Desconocido" : nombreRaw);
+                String nombreFinal = "Estación ITV de " + nombreRaw;
                 estacion.put("nombre", nombreFinal);
 
                 String tipoFinal =  mapTipo(tipoRaw);
@@ -43,21 +43,21 @@ public class WrapperCV {
                 if(tipoFinal.equals("Estación fija")){
                     estacion.put("latitud", CoordenadasService.obtenerLatLon(direccion)[0]);
                     estacion.put("longitud", CoordenadasService.obtenerLatLon(direccion)[1]);
-                    estacion.put("codigo_postal", isNullOrEmpty(cp) ? "0" : cp);
+                    estacion.put("codigo_postal", cp);
                 } else {
                     estacion.putNull("latitud");
                     estacion.putNull("longitud");
                     estacion.putNull("codigo_postal");
                 }
 
-                estacion.put("direccion", direccion);// Fix CP vacío
+                estacion.put("direccion", direccion);
                 estacion.put("descripcion", direccion + " / " + horario);
                 estacion.put("horario", horario);
                 estacion.put("contacto", correo);
                 estacion.put("URL", "www.sitval.com");
 
-                estacion.put("localidad_nombre", isNullOrEmpty(nombreRaw) ? "Desconocido" : nombreRaw);
-                estacion.put("provincia_nombre", isNullOrEmpty(provincia) ? "Desconocido" : provincia);
+                estacion.put("localidad_nombre", nombreRaw);
+                estacion.put("provincia_nombre", provincia);
 
                 String codProv;
                 if (!isNullOrEmpty(cp) && cp.length() >= 2) {
@@ -93,12 +93,11 @@ public class WrapperCV {
 
     private String inferirProvincia(String num) {
         String cod = inferirCodigoProvincia(num);
-        System.out.println("Cod provincia: " + cod);
         return switch (cod) {
             case "12" -> "Castellón";
             case "03" -> "Alicante";
             case "46" -> "Valencia";
-            default -> "Desconocido";
+            default -> null;
         };
     }
 
