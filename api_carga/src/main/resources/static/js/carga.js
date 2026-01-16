@@ -1,5 +1,5 @@
 // Configuración de la API
-const API_URL = 'http://localhost:9002/api/carga';
+const API_URL = 'http://localhost:9002/api';
 
 // Manejar checkbox "Seleccionar todas"
 function configurarCheckboxTodas() {
@@ -43,34 +43,37 @@ function obtenerFuentesSeleccionadas() {
 
 // Cargar datos
 async function cargarDatos() {
-    const fuentes = obtenerFuentesSeleccionadas();
+    const fuentesSeleccionadas = obtenerFuentesSeleccionadas();
 
-    if (fuentes.length === 0) {
+    if (fuentesSeleccionadas.length === 0) {
         alert('Por favor, selecciona al menos una fuente');
         return;
     }
 
     mostrarCargando(true);
 
+    const params = new URLSearchParams();
+    fuentesSeleccionadas.forEach(f => params.append("fuentes", f));
+
     try {
-        const response = await fetch(`${API_URL}/cargar`, {
-            method: 'GET',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({ fuentes })
+        const response = await fetch(`${API_URL}/carga/cargar?${params.toString()}`, {
+            method: 'GET'
         });
+
+        if (!response.ok) {
+            throw new Error('Error en la carga');
+        }
 
         const resultado = await response.json();
         mostrarResultadosCarga(resultado);
 
     } catch (error) {
-        console.error('Error:', error);
         mostrarError('Error al cargar datos: ' + error.message);
     } finally {
         mostrarCargando(false);
     }
 }
+
 
 // Borrar almacén de datos
 async function borrarAlmacen() {

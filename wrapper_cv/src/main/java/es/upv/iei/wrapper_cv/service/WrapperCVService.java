@@ -13,6 +13,6 @@ public class WrapperCVService {
     }
 
     public JsonNode obtenerEstaciones() throws Exception {
-        return wrapperCV.convertirAJSON("src/main/resources/Estacions_ITV.csv");
+        return wrapperCV.convertirAJSON("src/main/resources/estaciones.json");
     }
 }
