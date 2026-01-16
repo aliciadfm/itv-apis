@@ -28,65 +28,36 @@ public class ExtractorJSON {
             conn.setAutoCommit(false);
 
             for (JsonNode estacion : estacionesArray) {
+                String provinciaNombre = safeText(estacion.get("provincia_nombre"));
+                String provinciaCodigoKey = safeText(estacion.get("provincia_codigo"));
 
-                ObjectNode o = (ObjectNode) estacion;
-                o.put("tipo", safeText(o.get("TIPO ESTACIÓN")));
-                o.put("provincia_nombre", safeText(o.get("PROVINCIA")));
-                o.put("localidad_nombre", safeText(o.get("MUNICIPIO")));
-                o.put("codigo_postal", safeText(o.get("C.POSTAL")));
-                o.put("direccion", safeText(o.get("DIRECCIÓN")));
-                o.put("horario", safeText(o.get("HORARIOS")));
-                o.put("contacto", safeText(o.get("CORREO")));
-                o.put("URL", "www.sitval.com");
-
-                if (!estacionValida(o)) {
-                    System.out.println("Estación inválida descartada: " + o);
-                    continue;
+                long provinciaId;
+                if (provinciaCache.containsKey(provinciaCodigoKey)) {
+                    provinciaId = provinciaCache.get(provinciaCodigoKey);
+                } else {
+                    provinciaId = insertarProvincia(conn, provinciaNombre, provinciaCodigoKey);
                 }
 
-                String tipo = safeText(o.get("tipo"));
-
-                if ("Estación móvil".equals(tipo) || "Estación agrícola".equals(tipo)) {
-                    insertarEstacion(conn, o, null);
-                    continue;
-                }
-
-                String provinciaNombre = safeText(o.get("provincia_nombre"));
-                String provinciaCodigoKey = provinciaNombre.toLowerCase();
-
-                long provinciaId = provinciaCache.computeIfAbsent(
-                        provinciaCodigoKey,
-                        k -> {
-                            try {
-                                return insertarProvincia(conn, provinciaNombre, provinciaCodigoKey);
-                            } catch (SQLException ex) {
-                                throw new RuntimeException(ex);
-                            }
-                        }
-                );
-
-                String localidadNombre = safeText(o.get("localidad_nombre"));
+                String localidadNombre = estacion.get("localidad_nombre").asText();
                 String localidadKey = localidadNombre + "_" + provinciaId;
 
-                long localidadId = localidadCache.computeIfAbsent(
-                        localidadKey,
-                        k -> {
-                            try {
-                                return insertarLocalidad(conn, localidadNombre, provinciaId, localidadKey);
-                            } catch (SQLException ex) {
-                                throw new RuntimeException(ex);
-                            }
-                        }
-                );
+                long localidadId;
+                if (localidadCache.containsKey(localidadKey)) {
+                    localidadId = localidadCache.get(localidadKey);
+                } else {
+                    localidadId = insertarLocalidad(conn, localidadNombre, provinciaId, localidadKey);
+                }
 
-                insertarEstacion(conn, o, localidadId);
+                insertarEstacion(conn, estacion, localidadId);
             }
 
             conn.commit();
             System.out.println("Inserción completada correctamente.");
+        } catch (Exception e) {
+            e.printStackTrace();
+            throw e;
         }
     }
-
 
     private boolean estacionValida(JsonNode e) {
 
@@ -94,10 +65,12 @@ public class ExtractorJSON {
 
         if ("Estación móvil".equals(tipo) || "Estación agrícola".equals(tipo)) {
 
-            if (!isNull(e, "codigo_postal")) return false;
-            if (!isNull(e, "localidad_nombre")) return false;
-            if (!isNull(e, "latitud")) return false;
-            if (!isNull(e, "longitud")) return false;
+            if (!isEmpty(e, "direccion")) return false;
+            if (!isEmpty(e, "codigo_postal")) return false;
+            if (!isEmpty(e, "localidad_nombre")) return false;
+            if (!isEmpty(e, "provincia_nombre")) return false;
+            if (!isEmpty(e, "latitud")) return false;
+            if (!isEmpty(e, "longitud")) return false;
 
             String contacto = safeText(e.get("contacto"));
             if (contacto == null || !contacto.contains("@")) return false;
@@ -122,7 +95,8 @@ public class ExtractorJSON {
             String prefijo = cp.substring(0, 2);
             if (!prefijo.matches("03|12|46")) return false;
 
-            if (!coordenadasValidas(e)) return false;
+            if (!isNumber(e, "latitud")) return false;
+            if (!isNumber(e, "longitud")) return false;
 
             String contacto = safeText(e.get("contacto"));
             if (contacto == null || !contacto.contains("@")) return false;
@@ -132,7 +106,6 @@ public class ExtractorJSON {
 
         return false;
     }
-
 
     private boolean horarioValido(String h) {
         if (h == null) return false;
@@ -149,18 +122,6 @@ public class ExtractorJSON {
 
     private String safeText(JsonNode node) {
         return (node == null || node.isNull()) ? null : node.asText().trim();
-    }
-
-    private boolean coordenadasValidas(JsonNode e) {
-        if (!isNumber(e, "latitud") || !isNumber(e, "longitud")) return false;
-
-        double lat = e.get("latitud").asDouble();
-        double lon = e.get("longitud").asDouble();
-
-        boolean latOK = lat >= 37.8 && lat <= 40.8;
-        boolean lonOK = lon >= -1.8 && lon <= 0.8;
-
-        return latOK && lonOK;
     }
 
     private long insertarProvincia(Connection conn, String nombre, String codigoKey) throws SQLException {
@@ -193,37 +154,31 @@ public class ExtractorJSON {
         throw new SQLException("Error insertando Localidad: " + nombre);
     }
 
-    private void insertarEstacion(Connection conn, JsonNode estacion, Long localidadId) throws SQLException {
+    private void insertarEstacion(Connection conn, JsonNode estacion, long localidadId) throws SQLException {
         String sql = """
-                INSERT INTO estacion(
-                    nombre, tipo, direccion, codigo_postal,
-                    longitud, latitud, descripcion, horario,
-                    contacto, url, localidad_id
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            """;
+                    INSERT INTO estacion(
+                        nombre, tipo, direccion, codigo_postal,
+                        longitud, latitud, descripcion, horario,
+                        contacto, url, localidad_id
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """;
 
         try (PreparedStatement stmt = conn.prepareStatement(sql)) {
             stmt.setString(1, estacion.get("nombre").asText());
             stmt.setString(2, estacion.get("tipo").asText());
-            stmt.setString(3, safeText(estacion.get("direccion")));
-            stmt.setString(4, safeText(estacion.get("codigo_postal")));
+            stmt.setString(3, estacion.get("direccion").asText());
+            stmt.setString(4, estacion.get("codigo_postal").asText());
             setNullableDouble(stmt, 5, estacion.get("longitud"));
             setNullableDouble(stmt, 6, estacion.get("latitud"));
-            stmt.setString(7, safeText(estacion.get("descripcion")));
-            stmt.setString(8, safeText(estacion.get("horario")));
-            stmt.setString(9, safeText(estacion.get("contacto")));
-            stmt.setString(10, safeText(estacion.get("URL")));
-
-            if (localidadId == null) {
-                stmt.setNull(11, Types.BIGINT);
-            } else {
-                stmt.setLong(11, localidadId);
-            }
+            stmt.setString(7, estacion.get("descripcion").asText());
+            stmt.setString(8, estacion.get("horario").asText());
+            stmt.setString(9, estacion.get("contacto").asText());
+            stmt.setString(10, estacion.get("URL").asText());
+            stmt.setLong(11, localidadId);
 
             stmt.executeUpdate();
         }
     }
-
 
     private void setNullableDouble(PreparedStatement stmt, int idx, JsonNode node) throws SQLException {
         if (node == null || node.isNull() || !node.isNumber()) {
@@ -231,9 +186,5 @@ public class ExtractorJSON {
         } else {
             stmt.setDouble(idx, node.asDouble());
         }
-    }
-
-    private boolean isNull(JsonNode e, String f) {
-        return !e.has(f) || e.get(f).isNull();
     }
 }
