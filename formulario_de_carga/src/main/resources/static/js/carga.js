@@ -53,12 +53,14 @@ async function cargarDatos() {
     mostrarCargando(true);
 
     try {
-        const response = await fetch(`${API_URL}/cargar`, {
+        const queryParams = new URLSearchParams();
+        fuentes.forEach(fuente => queryParams.append('fuentes', fuente));
+
+        const response = await fetch(`${API_URL}/cargar?${queryParams.toString()}`, {
             method: 'GET',
             headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({ fuentes })
+                'Accept': 'application/json'
+            }
         });
 
         const resultado = await response.json();
