@@ -1,6 +1,7 @@
 package es.upv.iei.api_carga.extractor;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
@@ -28,47 +29,64 @@ public class ExtractorJSON {
 
             for (JsonNode estacion : estacionesArray) {
 
-                if (!estacionValida(estacion)) {
-                    System.out.println("Estación inválida descartada: " + estacion);
-                    continue;
+                ObjectNode o = (ObjectNode) estacion;
+                o.put("tipo", safeText(o.get("TIPO ESTACIÓN")));
+                o.put("provincia_nombre", safeText(o.get("PROVINCIA")));
+                o.put("localidad_nombre", safeText(o.get("MUNICIPIO")));
+                o.put("codigo_postal", safeText(o.get("C.POSTAL")));
+                o.put("direccion", safeText(o.get("DIRECCIÓN")));
+                o.put("horario", safeText(o.get("HORARIOS")));
+                o.put("contacto", safeText(o.get("CORREO")));
+                o.put("URL", "www.sitval.com");
 
+                if (!estacionValida(o)) {
+                    System.out.println("Estación inválida descartada: " + o);
+                    continue;
                 }
-                String tipo = safeText(estacion.get("tipo"));
+
+                String tipo = safeText(o.get("tipo"));
 
                 if ("Estación móvil".equals(tipo) || "Estación agrícola".equals(tipo)) {
-                    insertarEstacion(conn, estacion, null);
-                    continue; }
-
-                String provinciaNombre = safeText(estacion.get("provincia_nombre"));
-                String provinciaCodigoKey = safeText(estacion.get("provincia_codigo"));
-
-                long provinciaId;
-                if (provinciaCache.containsKey(provinciaCodigoKey)) {
-                    provinciaId = provinciaCache.get(provinciaCodigoKey);
-                } else {
-                    provinciaId = insertarProvincia(conn, provinciaNombre, provinciaCodigoKey);
+                    insertarEstacion(conn, o, null);
+                    continue;
                 }
 
-                String localidadNombre = estacion.get("localidad_nombre").asText();
+                String provinciaNombre = safeText(o.get("provincia_nombre"));
+                String provinciaCodigoKey = provinciaNombre.toLowerCase();
+
+                long provinciaId = provinciaCache.computeIfAbsent(
+                        provinciaCodigoKey,
+                        k -> {
+                            try {
+                                return insertarProvincia(conn, provinciaNombre, provinciaCodigoKey);
+                            } catch (SQLException ex) {
+                                throw new RuntimeException(ex);
+                            }
+                        }
+                );
+
+                String localidadNombre = safeText(o.get("localidad_nombre"));
                 String localidadKey = localidadNombre + "_" + provinciaId;
 
-                long localidadId;
-                if (localidadCache.containsKey(localidadKey)) {
-                    localidadId = localidadCache.get(localidadKey);
-                } else {
-                    localidadId = insertarLocalidad(conn, localidadNombre, provinciaId, localidadKey);
-                }
+                long localidadId = localidadCache.computeIfAbsent(
+                        localidadKey,
+                        k -> {
+                            try {
+                                return insertarLocalidad(conn, localidadNombre, provinciaId, localidadKey);
+                            } catch (SQLException ex) {
+                                throw new RuntimeException(ex);
+                            }
+                        }
+                );
 
-                insertarEstacion(conn, estacion, localidadId);
+                insertarEstacion(conn, o, localidadId);
             }
 
             conn.commit();
             System.out.println("Inserción completada correctamente.");
-        } catch (Exception e) {
-            e.printStackTrace();
-            throw e;
         }
     }
+
 
     private boolean estacionValida(JsonNode e) {
 
@@ -96,7 +114,6 @@ public class ExtractorJSON {
             if (isEmpty(e, "codigo_postal")) return false;
             if (isEmpty(e, "localidad_nombre")) return false;
             if (isEmpty(e, "provincia_nombre")) return false;
-            if (!coordenadasValidas(e)) return false;
 
             String horario = safeText(e.get("horario"));
             if (!horarioValido(horario)) return false;
@@ -107,6 +124,8 @@ public class ExtractorJSON {
             String prefijo = cp.substring(0, 2);
             if (!prefijo.matches("03|12|46")) return false;
 
+            if (!coordenadasValidas(e)) return false;
+
             String contacto = safeText(e.get("contacto"));
             if (contacto == null || !contacto.contains("@")) return false;
 
@@ -115,6 +134,7 @@ public class ExtractorJSON {
 
         return false;
     }
+
 
     private boolean horarioValido(String h) {
         if (h == null) return false;
