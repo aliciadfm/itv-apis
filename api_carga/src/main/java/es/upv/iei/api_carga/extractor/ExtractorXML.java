@@ -1,6 +1,7 @@
 package es.upv.iei.api_carga.extractor;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
@@ -28,29 +29,146 @@ public class ExtractorXML {
 
             for (JsonNode estacion : estacionesArray) {
 
-                String provinciaNombre = estacion.get("provincia_nombre").asText();
-                String provinciaCodigoKey = estacion.get("provincia_codigo").asText();
+                if (!estacionValida(estacion)) {
+                    System.out.println("❌ Estación rechazada por datos inválidos: " + estacion);
+                    continue;
+                }
+
+                limpiarEstacion(estacion);
+
+                String provinciaNombre = safeText(estacion, "provincia_nombre");
+                String provinciaCodigoKey = safeText(estacion, "provincia_codigo");
+
                 long provinciaId = provinciaCache.containsKey(provinciaCodigoKey)
                         ? provinciaCache.get(provinciaCodigoKey)
                         : getOrInsertProvincia(conn, provinciaNombre, provinciaCodigoKey);
 
-                String localidadNombre = estacion.get("localidad_nombre").asText();
+                String localidadNombre = safeText(estacion, "localidad_nombre");
                 String localidadKey = localidadNombre + "_" + provinciaId;
+
                 long localidadId = localidadCache.containsKey(localidadKey)
                         ? localidadCache.get(localidadKey)
                         : getOrInsertLocalidad(conn, localidadNombre, provinciaId, localidadKey);
 
-                if (!estacionExiste(conn, estacion.get("nombre").asText(), localidadId)) {
+                if (!estacionExiste(conn, safeText(estacion, "nombre"), localidadId)) {
                     insertarEstacion(conn, estacion, localidadId);
                 }
             }
+
             conn.commit();
-            System.out.println("Inserción Multi-Entidad XML completada correctamente.");
+            System.out.println("✔ Inserción Multi-Entidad XML completada correctamente.");
+        }
+    }
+
+    private String safeText(JsonNode node, String field) {
+        JsonNode value = node.get(field);
+        if (value == null || value.isNull()) return null;
+
+        String text = value.asText().trim();
+        return text.isEmpty() ? null : text;
+    }
+
+    private Double safeCoordinateLat(JsonNode node, String field) {
+        JsonNode value = node.get(field);
+        if (value == null || !value.isNumber()) return null;
+
+        double v = value.asDouble();
+
+        if (v > 43 || v < 40) return null;
+
+        return v;
+    }
+
+    private Double safeCoordinateLong(JsonNode node, String field) {
+        JsonNode value = node.get(field);
+        if (value == null || !value.isNumber()) return null;
+
+        double v = value.asDouble();
+
+        if (v > 3 || v < -1) return null;
+
+        return v;
+    }
+
+    private void limpiarEstacion(JsonNode estacion) {
+        ObjectNode e = (ObjectNode) estacion;
+
+        e.put("nombre", clean(safeText(estacion, "nombre")));
+        e.put("direccion", clean(safeText(estacion, "direccion")));
+        e.put("codigo_postal", clean(safeText(estacion, "codigo_postal")));
+        e.put("descripcion", clean(safeText(estacion, "descripcion")));
+        e.put("horario", clean(safeText(estacion, "horario")));
+        e.put("contacto", clean(safeText(estacion, "contacto")));
+        e.put("URL", clean(safeText(estacion, "URL")));
+
+        Double lat = safeCoordinateLat(estacion, "latitud");
+        Double lon = safeCoordinateLong(estacion, "longitud");
+
+        e.put("latitud", lat);
+        e.put("longitud", lon);
+    }
+
+    private String clean(String s) {
+        if (s == null) return null;
+        return s.replaceAll("[^\\p{L}\\p{N}\\s.,-]", "").trim();
+    }
+
+    private boolean estacionValida(JsonNode e) {
+
+        if (safeText(e, "nombre") == null) return false;
+
+        if (safeCoordinateLat(e, "latitud") == null) return false;
+        if (safeCoordinateLong(e, "longitud") == null) return false;
+
+        if (safeText(e, "direccion") == null) return false;
+        if (safeText(e, "codigo_postal") == null) return false;
+        if (safeText(e, "localidad_nombre") == null) return false;
+        if (safeText(e, "provincia_nombre") == null) return false;
+
+        return true;
+    }
+
+    private void insertarEstacion(Connection conn, JsonNode estacion, long localidadId) throws SQLException {
+
+        String sql = """
+                INSERT INTO estacion(
+                    nombre, tipo, direccion,
+                    codigo_postal, longitud, latitud,
+                    descripcion, horario, contacto, url,
+                    localidad_id
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """;
+
+        try (PreparedStatement stmt = conn.prepareStatement(sql)) {
+
+            stmt.setString(1, safeText(estacion, "nombre"));
+            stmt.setString(2, safeText(estacion, "tipo"));
+            stmt.setString(3, safeText(estacion, "direccion"));
+            stmt.setString(4, safeText(estacion, "codigo_postal"));
+
+            setNullableDouble(stmt, 5, estacion.get("longitud"));
+            setNullableDouble(stmt, 6, estacion.get("latitud"));
+
+            stmt.setString(7, safeText(estacion, "descripcion"));
+            stmt.setString(8, safeText(estacion, "horario"));
+            stmt.setString(9, safeText(estacion, "contacto"));
+            stmt.setString(10, safeText(estacion, "URL"));
+
+            stmt.setLong(11, localidadId);
+
+            stmt.executeUpdate();
+        }
+    }
+
+    private void setNullableDouble(PreparedStatement stmt, int idx, JsonNode node) throws SQLException {
+        if (node == null || node.isNull() || !node.isNumber()) {
+            stmt.setNull(idx, Types.DOUBLE);
+        } else {
+            stmt.setDouble(idx, node.asDouble());
         }
     }
 
     private long getOrInsertProvincia(Connection conn, String nombre, String codigoKey) throws SQLException {
-
         String selectSql = "SELECT codigo FROM provincia WHERE nombre = ?";
         try (PreparedStatement stmt = conn.prepareStatement(selectSql)) {
             stmt.setString(1, nombre);
@@ -62,11 +180,7 @@ public class ExtractorXML {
             }
         }
 
-        String insertSql = """
-                    INSERT INTO provincia(nombre)
-                    VALUES (?)
-                    RETURNING codigo
-                """;
+        String insertSql = "INSERT INTO provincia(nombre) VALUES (?) RETURNING codigo";
         try (PreparedStatement stmt = conn.prepareStatement(insertSql)) {
             stmt.setString(1, nombre);
             ResultSet rs = stmt.executeQuery();
@@ -81,6 +195,7 @@ public class ExtractorXML {
 
     private long getOrInsertLocalidad(Connection conn, String nombre, long provinciaId, String localidadKey)
             throws SQLException {
+
         String selectSql = "SELECT codigo FROM localidad WHERE nombre = ? AND provincia_codigo = ?";
         try (PreparedStatement stmt = conn.prepareStatement(selectSql)) {
             stmt.setString(1, nombre);
@@ -92,11 +207,8 @@ public class ExtractorXML {
                 return id;
             }
         }
-        String insertSql = """
-                    INSERT INTO localidad(nombre, provincia_codigo)
-                    VALUES (?, ?)
-                    RETURNING codigo
-                """;
+
+        String insertSql = "INSERT INTO localidad(nombre, provincia_codigo) VALUES (?, ?) RETURNING codigo";
         try (PreparedStatement stmt = conn.prepareStatement(insertSql)) {
             stmt.setString(1, nombre);
             stmt.setLong(2, provinciaId);
@@ -107,6 +219,7 @@ public class ExtractorXML {
                 return id;
             }
         }
+
         throw new SQLException("Error insertando Localidad");
     }
 
@@ -117,46 +230,6 @@ public class ExtractorXML {
             stmt.setLong(2, localidadId);
             ResultSet rs = stmt.executeQuery();
             return rs.next();
-        }
-    }
-
-    private void insertarEstacion(Connection conn, JsonNode estacion, long localidadId) throws SQLException {
-
-        String sql = """
-                    INSERT INTO estacion(
-                        nombre, tipo, direccion,
-                        codigo_postal, longitud, latitud,
-                        descripcion, horario, contacto, url,
-                        localidad_id
-                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                """;
-
-        try (PreparedStatement stmt = conn.prepareStatement(sql)) {
-
-            stmt.setString(1, estacion.get("nombre").asText());
-            stmt.setString(2, estacion.get("tipo").asText());
-            stmt.setString(3, estacion.get("direccion").asText());
-            stmt.setString(4, estacion.get("codigo_postal").asText());
-
-            setNullableDouble(stmt, 5, estacion.get("longitud"));
-            setNullableDouble(stmt, 6, estacion.get("latitud"));
-
-            stmt.setString(7, estacion.get("descripcion").asText());
-            stmt.setString(8, estacion.get("horario").asText());
-            stmt.setString(9, estacion.get("contacto").asText());
-            stmt.setString(10, estacion.get("URL").asText());
-
-            stmt.setLong(11, localidadId);
-
-            stmt.executeUpdate();
-        }
-    }
-
-    private void setNullableDouble(PreparedStatement stmt, int idx, JsonNode node) throws SQLException {
-        if (node == null || node.isNull() || !node.isNumber()) {
-            stmt.setNull(idx, Types.DOUBLE);
-        } else {
-            stmt.setDouble(idx, node.asDouble());
         }
     }
 }
