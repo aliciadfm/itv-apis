@@ -73,22 +73,20 @@ public class CargaService {
         JsonNode jsonData;
 
         switch (fuente.toUpperCase()) {
+
             case "CV":
-                // Llamar al wrapper de Comunitat Valenciana
                 String cvResponse = restTemplate.getForObject(wrapperCvUrl, String.class);
                 jsonData = objectMapper.readTree(cvResponse);
                 extractorJSON.insertar(jsonData);
                 break;
 
             case "CAT":
-                // Llamar al wrapper de Catalunya
                 String catResponse = restTemplate.getForObject(wrapperCatUrl, String.class);
                 jsonData = objectMapper.readTree(catResponse);
                 extractorXML.insertar(jsonData);
                 break;
 
             case "GAL":
-                // Llamar al wrapper de Galicia
                 String galResponse = restTemplate.getForObject(wrapperGalUrl, String.class);
                 jsonData = objectMapper.readTree(galResponse);
                 extractorCSV.insertar(jsonData);
@@ -98,7 +96,6 @@ public class CargaService {
                 throw new RuntimeException("Fuente desconocida: " + fuente);
         }
 
-        // TODO: Capturar estadísticas de los extractores y actualizar resultado
         resultado.incrementarRegistrosCorrectos();
     }
 

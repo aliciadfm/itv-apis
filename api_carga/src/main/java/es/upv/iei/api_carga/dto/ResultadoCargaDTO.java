@@ -34,48 +34,16 @@ public class ResultadoCargaDTO {
         this.erroresRechazados = new ArrayList<>();
     }
 
-    public int getRegistrosCorrectos() {
-        return registrosCorrectos;
-    }
-
-    public void setRegistrosCorrectos(int registrosCorrectos) {
-        this.registrosCorrectos = registrosCorrectos;
-    }
-
     public void incrementarRegistrosCorrectos() {
         this.registrosCorrectos++;
-    }
-
-    public int getRegistrosConErroresReparados() {
-        return registrosConErroresReparados;
-    }
-
-    public void setRegistrosConErroresReparados(int registrosConErroresReparados) {
-        this.registrosConErroresReparados = registrosConErroresReparados;
     }
 
     public void incrementarRegistrosConErroresReparados() {
         this.registrosConErroresReparados++;
     }
 
-    public int getRegistrosRechazados() {
-        return registrosRechazados;
-    }
-
-    public void setRegistrosRechazados(int registrosRechazados) {
-        this.registrosRechazados = registrosRechazados;
-    }
-
     public void incrementarRegistrosRechazados() {
         this.registrosRechazados++;
-    }
-
-    public List<ErrorCargaDTO> getErroresReparados() {
-        return erroresReparados;
-    }
-
-    public void setErroresReparados(List<ErrorCargaDTO> erroresReparados) {
-        this.erroresReparados = erroresReparados;
     }
 
     public void agregarErrorReparado(ErrorCargaDTO error) {
@@ -83,16 +51,36 @@ public class ResultadoCargaDTO {
         incrementarRegistrosConErroresReparados();
     }
 
-    public List<ErrorCargaDTO> getErroresRechazados() {
-        return erroresRechazados;
-    }
-
-    public void setErroresRechazados(List<ErrorCargaDTO> erroresRechazados) {
-        this.erroresRechazados = erroresRechazados;
-    }
-
     public void agregarErrorRechazado(ErrorCargaDTO error) {
         this.erroresRechazados.add(error);
         incrementarRegistrosRechazados();
+    }
+
+    public void acumular(ResultadoCargaDTO other) {
+        this.registrosCorrectos += other.registrosCorrectos;
+        this.registrosConErroresReparados += other.registrosConErroresReparados;
+        this.registrosRechazados += other.registrosRechazados;
+        this.erroresReparados.addAll(other.erroresReparados);
+        this.erroresRechazados.addAll(other.erroresRechazados);
+    }
+
+    public int getRegistrosCorrectos() {
+        return registrosCorrectos;
+    }
+
+    public int getRegistrosConErroresReparados() {
+        return registrosConErroresReparados;
+    }
+
+    public int getRegistrosRechazados() {
+        return registrosRechazados;
+    }
+
+    public List<ErrorCargaDTO> getErroresReparados() {
+        return erroresReparados;
+    }
+
+    public List<ErrorCargaDTO> getErroresRechazados() {
+        return erroresRechazados;
     }
 }
