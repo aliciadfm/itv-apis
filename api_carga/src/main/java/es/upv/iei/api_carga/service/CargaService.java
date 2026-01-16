@@ -28,13 +28,13 @@ public class CargaService {
     private final RestTemplate restTemplate;
     private final ObjectMapper objectMapper;
 
-    @Value("${wrapper.cv.url:http://localhost:9003/convert}")
+    @Value("${wrapper.cv.url:http://localhost:9003/valencia}")
     private String wrapperCvUrl;
 
-    @Value("${wrapper.cat.url:http://localhost:9004/convert}")
+    @Value("${wrapper.cat.url:http://localhost:9004/catalunya}")
     private String wrapperCatUrl;
 
-    @Value("${wrapper.gal.url:http://localhost:9005/convert}")
+    @Value("${wrapper.gal.url:http://localhost:9005/galicia}")
     private String wrapperGalUrl;
 
     public CargaService(ExtractorJSON extractorJSON,
@@ -77,19 +77,25 @@ public class CargaService {
             case "CV":
                 String cvResponse = restTemplate.getForObject(wrapperCvUrl, String.class);
                 jsonData = objectMapper.readTree(cvResponse);
-                extractorJSON.insertar(jsonData);
+                // Extraer solo el array de estaciones
+                JsonNode estacionesCV = jsonData.get("estaciones");
+                extractorJSON.insertar(estacionesCV);
                 break;
 
             case "CAT":
                 String catResponse = restTemplate.getForObject(wrapperCatUrl, String.class);
                 jsonData = objectMapper.readTree(catResponse);
-                extractorXML.insertar(jsonData);
+                // Extraer solo el array de estaciones
+                JsonNode estacionesCAT = jsonData.get("estaciones");
+                extractorXML.insertar(estacionesCAT);
                 break;
 
             case "GAL":
                 String galResponse = restTemplate.getForObject(wrapperGalUrl, String.class);
                 jsonData = objectMapper.readTree(galResponse);
-                extractorCSV.insertar(jsonData);
+                // Extraer solo el array de estaciones
+                JsonNode estacionesGAL = jsonData.get("estaciones");
+                extractorCSV.insertar(estacionesGAL);
                 break;
 
             default:

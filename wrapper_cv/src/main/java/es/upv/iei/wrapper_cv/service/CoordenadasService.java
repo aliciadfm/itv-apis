@@ -16,7 +16,6 @@ public class CoordenadasService {
 
         try {
             driver.get("https://www.coordenadas-gps.com/convertidor-de-coordenadas-gps");
-        /*
             try {
                 By botonCookies = By.xpath(
                         "//*[contains(text(),'Consent') or " +
@@ -32,7 +31,6 @@ public class CoordenadasService {
             } catch (Exception ignored) {
                 System.out.println("⚠ No se encontró banner de cookies, continuando...");
             }
-        */
             WebElement input = wait.until(
                     ExpectedConditions.visibilityOfElementLocated(By.id("address"))
             );
