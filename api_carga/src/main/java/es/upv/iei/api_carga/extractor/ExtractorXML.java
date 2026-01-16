@@ -30,7 +30,7 @@ public class ExtractorXML {
             for (JsonNode estacion : estacionesArray) {
 
                 if (!estacionValida(estacion)) {
-                    System.out.println("❌ Estación rechazada por datos inválidos: " + estacion);
+                    System.out.println("Estación rechazada por datos inválidos: " + estacion);
                     continue;
                 }
 
@@ -58,6 +58,20 @@ public class ExtractorXML {
             conn.commit();
             System.out.println("✔ Inserción Multi-Entidad XML completada correctamente.");
         }
+    }
+
+    private static final Map<String, String> PROVINCIA_POR_CP = Map.of(
+            "08", "Barcelona",
+            "17", "Girona",
+            "25", "Lleida",
+            "43", "Tarragona"
+    );
+
+    private String provinciaSegunCP(String codigoPostal) {
+        if (codigoPostal == null || codigoPostal.length() < 2) return null;
+
+        String prefijo = codigoPostal.substring(0, 2);
+        return PROVINCIA_POR_CP.get(prefijo);
     }
 
     private String safeText(JsonNode node, String field) {
@@ -124,6 +138,19 @@ public class ExtractorXML {
         if (safeText(e, "codigo_postal") == null) return false;
         if (safeText(e, "localidad_nombre") == null) return false;
         if (safeText(e, "provincia_nombre") == null) return false;
+
+        String cp = safeText(e, "codigo_postal");
+        String provinciaXML = safeText(e, "provincia_nombre");
+
+        String provinciaPorCP = provinciaSegunCP(cp);
+
+        if (provinciaPorCP != null && provinciaXML != null) {
+            if (!provinciaPorCP.equalsIgnoreCase(provinciaXML)) {
+                System.out.println("Inconsistencia: CP " + cp + " indica " + provinciaPorCP +
+                        " pero XML dice " + provinciaXML);
+                return false;
+            }
+        }
 
         return true;
     }
