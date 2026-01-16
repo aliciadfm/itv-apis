@@ -94,12 +94,10 @@ public class ExtractorJSON {
 
         if ("Estación móvil".equals(tipo) || "Estación agrícola".equals(tipo)) {
 
-            if (!isEmpty(e, "direccion")) return false;
-            if (!isEmpty(e, "codigo_postal")) return false;
-            if (!isEmpty(e, "localidad_nombre")) return false;
-            if (!isEmpty(e, "provincia_nombre")) return false;
-            if (!isEmpty(e, "latitud")) return false;
-            if (!isEmpty(e, "longitud")) return false;
+            if (!isNull(e, "codigo_postal")) return false;
+            if (!isNull(e, "localidad_nombre")) return false;
+            if (!isNull(e, "latitud")) return false;
+            if (!isNull(e, "longitud")) return false;
 
             String contacto = safeText(e.get("contacto"));
             if (contacto == null || !contacto.contains("@")) return false;
@@ -233,5 +231,9 @@ public class ExtractorJSON {
         } else {
             stmt.setDouble(idx, node.asDouble());
         }
+    }
+
+    private boolean isNull(JsonNode e, String f) {
+        return !e.has(f) || e.get(f).isNull();
     }
 }
