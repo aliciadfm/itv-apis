@@ -21,13 +21,14 @@ public class ExtractorJSON {
     private final Map<String, Long> provinciaCache = new HashMap<>();
     private final Map<String, Long> localidadCache = new HashMap<>();
 
+
     public void insertar(JsonNode estacionesArray) throws Exception {
         try (Connection conn = DriverManager.getConnection(url, user, password)) {
             conn.setAutoCommit(false);
 
             for (JsonNode estacion : estacionesArray) {
-                String provinciaNombre = estacion.get("provincia_nombre").asText();
-                String provinciaCodigoKey = estacion.get("provincia_codigo").asText();
+                String provinciaNombre = safeText(estacion.get("provincia_nombre"));
+                String provinciaCodigoKey = safeText(estacion.get("provincia_codigo"));
 
                 long provinciaId;
                 if (provinciaCache.containsKey(provinciaCodigoKey)) {
@@ -55,6 +56,71 @@ public class ExtractorJSON {
             e.printStackTrace();
             throw e;
         }
+    }
+
+    private boolean estacionValida(JsonNode e) {
+
+        String tipo = safeText(e.get("tipo"));
+
+        if ("Estación móvil".equals(tipo) || "Estación agrícola".equals(tipo)) {
+
+            if (!isEmpty(e, "direccion")) return false;
+            if (!isEmpty(e, "codigo_postal")) return false;
+            if (!isEmpty(e, "localidad_nombre")) return false;
+            if (!isEmpty(e, "provincia_nombre")) return false;
+            if (!isEmpty(e, "latitud")) return false;
+            if (!isEmpty(e, "longitud")) return false;
+
+            String contacto = safeText(e.get("contacto"));
+            if (contacto == null || !contacto.contains("@")) return false;
+
+            return true;
+        }
+
+        if ("Estación fija".equals(tipo)) {
+
+            if (isEmpty(e, "nombre")) return false;
+            if (isEmpty(e, "direccion")) return false;
+            if (isEmpty(e, "codigo_postal")) return false;
+            if (isEmpty(e, "localidad_nombre")) return false;
+            if (isEmpty(e, "provincia_nombre")) return false;
+
+            String horario = safeText(e.get("horario"));
+            if (!horarioValido(horario)) return false;
+
+            String cp = safeText(e.get("codigo_postal"));
+            if (!cp.matches("\\d{5}")) return false;
+
+            String prefijo = cp.substring(0, 2);
+            if (!prefijo.matches("03|12|46")) return false;
+
+            if (!isNumber(e, "latitud")) return false;
+            if (!isNumber(e, "longitud")) return false;
+
+            String contacto = safeText(e.get("contacto"));
+            if (contacto == null || !contacto.contains("@")) return false;
+
+            return true;
+        }
+
+        return false;
+    }
+
+    private boolean horarioValido(String h) {
+        if (h == null) return false;
+        return h.matches(".*([01]?\\d|2[0-3]):[0-5]\\d.*");
+    }
+
+    private boolean isEmpty(JsonNode e, String f) {
+        return !e.has(f) || e.get(f).isNull() || e.get(f).asText().trim().isEmpty();
+    }
+
+    private boolean isNumber(JsonNode e, String f) {
+        return e.has(f) && e.get(f).isNumber();
+    }
+
+    private String safeText(JsonNode node) {
+        return (node == null || node.isNull()) ? null : node.asText().trim();
     }
 
     private long insertarProvincia(Connection conn, String nombre, String codigoKey) throws SQLException {
