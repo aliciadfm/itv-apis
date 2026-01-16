@@ -102,11 +102,7 @@ public class WrapperGal {
                 estacionesArray.add(estacion);
             }
         }
-        ObjectNode jsonFinal = mapper.createObjectNode();
-        jsonFinal.set("estaciones", estacionesArray);
-        jsonFinal.set("localidades", localidadesArray);
-        jsonFinal.set("provincias", provinciasArray);
-        return jsonFinal;
+        return estacionesArray;
     }
 
     private String limpiarNombreProvincia(String provincia) {
