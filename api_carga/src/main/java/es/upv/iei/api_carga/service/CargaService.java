@@ -28,13 +28,13 @@ public class CargaService {
     private final RestTemplate restTemplate;
     private final ObjectMapper objectMapper;
 
-    @Value("${wrapper.cv.url:http://localhost:9003/valencia}")
+    @Value("${wrapper.cv.url:http://localhost:9003/convert}")
     private String wrapperCvUrl;
 
-    @Value("${wrapper.cat.url:http://localhost:9004/catalunya}")
+    @Value("${wrapper.cat.url:http://localhost:9004/convert}")
     private String wrapperCatUrl;
 
-    @Value("${wrapper.gal.url:http://localhost:9005/galicia}")
+    @Value("${wrapper.gal.url:http://localhost:9005/convert}")
     private String wrapperGalUrl;
 
     public CargaService(ExtractorJSON extractorJSON,
@@ -77,25 +77,19 @@ public class CargaService {
             case "CV":
                 String cvResponse = restTemplate.getForObject(wrapperCvUrl, String.class);
                 jsonData = objectMapper.readTree(cvResponse);
-                // Extraer solo el array de estaciones
-                JsonNode estacionesCV = jsonData.get("estaciones");
-                extractorJSON.insertar(estacionesCV);
+                extractorJSON.insertar(jsonData);
                 break;
 
             case "CAT":
                 String catResponse = restTemplate.getForObject(wrapperCatUrl, String.class);
                 jsonData = objectMapper.readTree(catResponse);
-                // Extraer solo el array de estaciones
-                JsonNode estacionesCAT = jsonData.get("estaciones");
-                extractorXML.insertar(estacionesCAT);
+                extractorJSON.insertar(jsonData);
                 break;
 
             case "GAL":
                 String galResponse = restTemplate.getForObject(wrapperGalUrl, String.class);
                 jsonData = objectMapper.readTree(galResponse);
-                // Extraer solo el array de estaciones
-                JsonNode estacionesGAL = jsonData.get("estaciones");
-                extractorCSV.insertar(estacionesGAL);
+                extractorJSON.insertar(jsonData);
                 break;
 
             default:
