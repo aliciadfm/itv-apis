@@ -16,7 +16,7 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/carga")
-@CrossOrigin(origins = "http://localhost:9002")
+@CrossOrigin(origins = { "http://localhost:9010/", "http://localhost:9011/" })
 @Tag(
         name = "API de Carga (ETL)",
         description = """

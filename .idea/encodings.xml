@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="Encoding">
+    <file url="file://$PROJECT_DIR$/api_busqueda/src/main/java" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/api_carga/src/main/java" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/wrapper_cat/src/main/java" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/wrapper_cv/src/main/java" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/wrapper_gal/src/main/java" charset="UTF-8" />
+  </component>
+</project>
