@@ -98,7 +98,7 @@ public class ExtractorJSON {
             }
 
             // Si pasa el filtro anterior, validamos que tenga al menos coordenadas y contacto
-            if (!isEmpty(e, "latitud") || !isEmpty(e, "longitud")) return false;
+            if (isEmpty(e, "latitud") || isEmpty(e, "longitud")) return false;
 
             String contacto = safeText(e.get("contacto"));
             // Validación simple de email (debe contener @)
